@@ -9,7 +9,8 @@
               <h5 class="card-title fw-bold mb-3">
                 <i class="bi bi-search"></i> Tìm Kiếm
               </h5>
-              <input v-model="q" type="text" class="form-control mb-3" placeholder="Tên sách, tác giả..." @input="search">
+              <input v-model="q" type="text" class="form-control mb-3" placeholder="Tên sách, tác giả..."
+                @input="search">
               <button @click="clearFilters" class="btn btn-sm btn-outline-secondary w-100">
                 <i class="bi bi-x"></i> Xóa Bộ Lọc
               </button>
@@ -63,15 +64,18 @@
               <div>
                 <label class="form-label fw-bold">Tình Trạng</label>
                 <div class="form-check">
-                  <input v-model="statusFilter" class="form-check-input" type="radio" value="all" id="status-all" @change="applyFilters">
+                  <input v-model="statusFilter" class="form-check-input" type="radio" value="all" id="status-all"
+                    @change="applyFilters">
                   <label class="form-check-label" for="status-all">Tất Cả</label>
                 </div>
                 <div class="form-check">
-                  <input v-model="statusFilter" class="form-check-input" type="radio" value="available" id="status-available" @change="applyFilters">
+                  <input v-model="statusFilter" class="form-check-input" type="radio" value="available"
+                    id="status-available" @change="applyFilters">
                   <label class="form-check-label" for="status-available">Sẵn Có</label>
                 </div>
                 <div class="form-check">
-                  <input v-model="statusFilter" class="form-check-input" type="radio" value="borrowed" id="status-borrowed" @change="applyFilters">
+                  <input v-model="statusFilter" class="form-check-input" type="radio" value="borrowed"
+                    id="status-borrowed" @change="applyFilters">
                   <label class="form-check-label" for="status-borrowed">Hết Sách</label>
                 </div>
               </div>
@@ -82,11 +86,12 @@
         <!-- Main Content -->
         <div class="col-lg-9 order-lg-2 order-1">
           <h2 class="mt-0 mb-3">Danh sách sách</h2>
-          
+
           <!-- Stats and Sort -->
           <div class="d-flex justify-content-between align-items-center mb-4" v-if="books.length > 0">
             <p class="text-muted mb-0">
-              <i class="bi bi-info-circle"></i> Hiển thị {{ books.length }} cuốn sách (Trang {{ pagination.page }}/{{ pagination.pages }})
+              <i class="bi bi-info-circle"></i> Hiển thị {{ books.length }} cuốn sách (Trang {{ pagination.page }}/{{
+                pagination.pages }})
             </p>
             <div>
               <select v-model="sortBy" class="form-select form-select-sm" style="width: auto;" @change="applySort">
@@ -101,19 +106,25 @@
           <div class="row g-3" v-if="books.length > 0">
             <div class="col-12 col-sm-6 col-lg-4" v-for="b in books" :key="b._id">
               <div class="card shadow-sm border-0 h-100 book-card">
-                <img v-if="b.coverImage" :src="getCoverImageUrl(b.coverImage)"
-                  class="card-img-top" :alt="b.title"
+                <img v-if="b.coverImage" :src="getCoverImageUrl(b.coverImage)" class="card-img-top" :alt="b.title"
                   style="height: 280px; object-fit: contain; background-color: #f8f9fa;">
-                <div v-else
-                  class="card-img-top bg-light d-flex align-items-center justify-content-center"
+                <div v-else class="card-img-top bg-light d-flex align-items-center justify-content-center"
                   style="height: 280px;">
                   <i class="bi bi-book text-muted" style="font-size: 3rem;"></i>
                 </div>
                 <div class="card-body d-flex flex-column">
-                  <h5 class="card-title fw-bold mb-2" :title="b.title">{{ truncateText(b.title, 50) }}</h5>
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title fw-bold mb-0 flex-grow-1" :title="b.title">{{ truncateText(b.title, 50) }}
+                    </h5>
+                    <button class="btn btn-sm btn-link p-0 ms-2 flex-shrink-0" @click="showDescription(b)"
+                      :title="'Xem mô tả'" style="min-width: auto;">
+                      <i class="bi bi-info-circle text-primary" style="font-size: 1.2rem;"></i>
+                    </button>
+                  </div>
                   <p class="card-text text-muted mb-2"><i class="bi bi-pencil-square"></i> {{ b.author }}</p>
-                  <p class="card-text"><small class="text-muted"><i class="bi bi-building"></i> {{ b.publisher?.tenNXB || '' }}</small></p>
-                  
+                  <p class="card-text"><small class="text-muted"><i class="bi bi-building"></i> {{ b.publisher?.tenNXB
+                    || '' }}</small></p>
+
                   <div class="mb-2">
                     <span v-if="b.soQuyen > 0" class="badge bg-success">
                       <i class="bi bi-check-circle"></i> Sẵn Có ({{ b.soQuyen }})
@@ -125,16 +136,17 @@
 
                   <div class="mt-auto">
                     <button class="btn btn-sm w-100"
-                      :class="(inCart(b._id) || b.userHasActiveLoan || (b.reserved || b.soQuyen <= 0)) ? 'btn-success' : 'btn-outline-primary'"
-                      @click="addToCart(b)" :disabled="inCart(b._id) || b.userHasActiveLoan || (b.reserved || b.soQuyen <= 0)">
-                      {{ b.userHasActiveLoan ? 'Đã mượn' : ((b.reserved || b.soQuyen <= 0) ? 'Hết sách' : (inCart(b._id) ? 'Đã thêm' : 'Yêu cầu mượn')) }}
-                    </button>
+                      :class="(inCart(b._id) || b.userHasActiveLoan || isBookBorrowed(b._id) || (b.reserved || b.soQuyen <= 0)) ? 'btn-success' : 'btn-outline-primary'"
+                      @click="addToCart(b)"
+                      :disabled="inCart(b._id) || b.userHasActiveLoan || isBookBorrowed(b._id) || (b.reserved || b.soQuyen <= 0)">
+                      {{ (b.userHasActiveLoan || isBookBorrowed(b._id)) ? 'Đã mượn' : ((b.reserved || b.soQuyen <= 0)
+                        ? 'Hết sách' : (inCart(b._id) ? 'Đã thêm' : 'Yêu cầu mượn')) }} </button>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          
+
           <!-- Thông báo không có sách -->
           <div v-else class="text-center text-muted py-5">
             <i class="bi bi-inbox h1 text-muted"></i>
@@ -144,14 +156,15 @@
               <i class="bi bi-arrow-clockwise"></i> Xóa Bộ Lọc
             </button>
           </div>
-          
+
           <!-- Phân trang -->
           <nav v-if="pagination.pages > 1" class="d-flex justify-content-center mt-4">
             <ul class="pagination">
               <li class="page-item" :class="{ disabled: !pagination.hasPrev }">
                 <a class="page-link" href="#" @click.prevent="changePage(pagination.page - 1)">Trước</a>
               </li>
-              <li class="page-item" v-for="page in visiblePages" :key="page" :class="{ active: page === pagination.page }">
+              <li class="page-item" v-for="page in visiblePages" :key="page"
+                :class="{ active: page === pagination.page }">
                 <a class="page-link" href="#" @click.prevent="changePage(page)">{{ page }}</a>
               </li>
               <li class="page-item" :class="{ disabled: !pagination.hasNext }">
@@ -159,6 +172,32 @@
               </li>
             </ul>
           </nav>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal hiển thị mô tả sách -->
+    <div v-if="selectedBook" class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">
+              <i class="bi bi-info-circle-fill text-primary me-2"></i>
+              Mô tả sách
+            </h5>
+            <button type="button" class="btn-close" @click="closeDescription"></button>
+          </div>
+          <div class="modal-body">
+            <h6 class="fw-bold mb-2">{{ selectedBook.title }}</h6>
+            <p class="text-muted mb-3"><i class="bi bi-pencil-square"></i> {{ selectedBook.author }}</p>
+            <hr>
+            <div class="description-content">
+              <p style="white-space: pre-wrap;">{{ selectedBook.bookTitle?.description || 'Không có mô tả.' }}</p>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="closeDescription">Đóng</button>
+          </div>
         </div>
       </div>
     </div>
@@ -174,12 +213,13 @@ export default {
     const { showWarning, showSuccess } = useNotifications()
     return { showWarning, showSuccess }
   },
-  data() { 
-    return { 
-      books: [], 
-      q: '', 
+  data() {
+    return {
+      books: [],
+      q: '',
       cart: [],
       currentPage: 1,
+      selectedBook: null, // For description modal
       pagination: {
         page: 1,
         limit: 9,
@@ -193,16 +233,42 @@ export default {
       selectedCategory: '',
       selectedYear: '',
       statusFilter: 'all',
-      sortBy: 'name'
-    } 
+      sortBy: 'name',
+      borrowedBooksLocal: {} // Track borrowed books locally for reactivity
+    }
   },
-  async created() { await this.load(); this.cart = this.getCart() },
-  async activated() {
-    // Refresh when navigating back to this component
+  async created() {
+    console.log('📍 BookList created');
+
+    // Listen for events
+    window.addEventListener('storage', this.handleStorageChange);
+    window.addEventListener('borrowedBooksChanged', this.handleBorrowedBooksChanged);
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+
+    // Load data
+    this.cart = this.getCart();
+    await this.refreshBorrowedBooks();
     await this.load();
-    this.cart = this.getCart()
+  },
+  async activated() {
+    console.log('📍 BookList activated - refreshing all data');
+
+    // Always refresh from localStorage when activated
+    this.cart = this.getCart();
+    await this.refreshBorrowedBooks();
+    await this.load();
+  },
+  beforeUnmount() {
+    // Clean up event listener
+    window.removeEventListener('storage', this.handleStorageChange);
+    window.removeEventListener('borrowedBooksChanged', this.handleBorrowedBooksChanged);
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   },
   computed: {
+    borrowedBooks() {
+      // Use local data for reactivity instead of directly reading localStorage
+      return this.borrowedBooksLocal;
+    },
     yearOptions() {
       const years = new Set()
       this.books.forEach(book => {
@@ -214,11 +280,11 @@ export default {
       const pages = []
       const total = this.pagination.pages
       const current = this.pagination.page
-      
+
       // Hiển thị tối đa 5 trang
       let start = Math.max(1, current - 2)
       let end = Math.min(total, current + 2)
-      
+
       // Điều chỉnh nếu không đủ 5 trang
       if (end - start < 4) {
         if (start === 1) {
@@ -227,18 +293,28 @@ export default {
           start = Math.max(1, end - 4)
         }
       }
-      
+
       for (let i = start; i <= end; i++) {
         pages.push(i)
       }
-      
+
       return pages
     }
   },
   watch: {
-    '$route'() {
+    async '$route'() {
       // Refresh when route changes
-      this.load()
+      console.log('🔄 Route changed, refreshing BookList');
+      await this.refreshBorrowedBooks();
+      await this.load();
+    },
+    borrowedBooksLocal: {
+      handler(newVal, oldVal) {
+        console.log('📊 borrowedBooksLocal changed!');
+        console.log('Old value:', oldVal);
+        console.log('New value:', newVal);
+      },
+      deep: true
     }
   },
   methods: {
@@ -252,16 +328,16 @@ export default {
           limit: 9,
           _t: timestamp
         })
-        
+
         if (this.q) params.append('q', this.q)
         if (this.selectedPublisher) params.append('publisher', this.selectedPublisher)
         if (this.selectedCategory) params.append('category', this.selectedCategory)
         if (this.selectedYear) params.append('year', this.selectedYear)
         if (this.statusFilter !== 'all') params.append('status', this.statusFilter)
         if (this.sortBy) params.append('sort', this.sortBy)
-        
+
         const res = await api.get(`/books?${params.toString()}`)
-        
+
         if (res.data.pagination) {
           // Paginated API response
           this.books = res.data.books
@@ -281,9 +357,11 @@ export default {
             hasPrev: false
           }
         }
-        
-        console.log('📚 Books API Response:', this.books.slice(0, 2)) // Log first 2 books for debugging
-        console.log('📄 Pagination object:', this.pagination) // Log pagination for debugging
+
+        console.log('📚 Books loaded:', this.books.length);
+        console.log('📋 Book IDs:', this.books.map(b => b._id));
+        console.log('📊 Current borrowedBooks:', this.borrowedBooks);
+        console.log('📄 Pagination:', this.pagination)
       } catch (error) {
         console.error('Error loading books:', error)
         this.showWarning('Có lỗi khi tải danh sách sách')
@@ -298,9 +376,9 @@ export default {
       })
       this.publishers = Array.from(pubSet).sort()
     },
-    async search() { 
+    async search() {
       this.currentPage = 1
-      await this.load(1) 
+      await this.load(1)
     },
     async applyFilters() {
       this.currentPage = 1
@@ -355,7 +433,74 @@ export default {
       }
       // stay on page; cart is reactive so button will update to "Đã thêm"
     },
-    removeFromCart(id) { this.cart = this.cart.filter(b => b._id !== id); this.saveCart(this.cart) }
+    removeFromCart(id) { this.cart = this.cart.filter(b => b._id !== id); this.saveCart(this.cart) },
+    isBookBorrowed(bookId) {
+      const borrowedBooksObj = this.borrowedBooks;
+      const isBorrowed = borrowedBooksObj[bookId] === 'borrowed';
+
+      // Log every check to see what's happening
+      console.log(`🔍 Checking book ${bookId}:`, isBorrowed ? '✓ BORROWED' : '✗ Not borrowed', 'borrowedBooks:', borrowedBooksObj);
+
+      return isBorrowed;
+    },
+    getBorrowedBooks() {
+      try {
+        return JSON.parse(localStorage.getItem('borrowedBooks') || '{}')
+      } catch (e) {
+        return {}
+      }
+    },
+    handleStorageChange(event) {
+      if (event.key === 'borrowedBooks') {
+        this.borrowedBooksLocal = this.getBorrowedBooks();
+        console.log('BookList: borrowedBooks updated from storage:', this.borrowedBooksLocal);
+      }
+    },
+    handleBorrowedBooksChanged(event) {
+      console.log('🔔 BookList: Received borrowedBooksChanged event');
+      console.log('📦 Event detail:', event.detail);
+      this.refreshBorrowedBooksFromData(event.detail.borrowedBooks);
+    },
+    refreshBorrowedBooksFromData(newBorrowedBooks) {
+      console.log('🔄 Refreshing borrowedBooksLocal with:', newBorrowedBooks);
+
+      // Clear existing data
+      Object.keys(this.borrowedBooksLocal).forEach(key => {
+        delete this.borrowedBooksLocal[key];
+      });
+
+      // Assign new data
+      Object.assign(this.borrowedBooksLocal, newBorrowedBooks);
+
+      console.log('✅ Updated borrowedBooksLocal:', this.borrowedBooksLocal);
+
+      // Force re-render
+      this.$nextTick(() => {
+        this.$forceUpdate();
+      });
+    },
+    async refreshBorrowedBooks() {
+      console.log('📥 Loading borrowedBooks from localStorage');
+      const borrowed = this.getBorrowedBooks();
+      console.log('📊 Loaded borrowedBooks:', borrowed);
+      this.refreshBorrowedBooksFromData(borrowed);
+    },
+    async handleVisibilityChange() {
+      if (!document.hidden) {
+        console.log('👁️ Tab became visible - refreshing borrowed books');
+        await this.refreshBorrowedBooks();
+      }
+    },
+    showDescription(book) {
+      this.selectedBook = book;
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    },
+    closeDescription() {
+      this.selectedBook = null;
+      // Restore body scroll
+      document.body.style.overflow = '';
+    }
   }
 }
 </script>
@@ -407,11 +552,11 @@ export default {
   .books-page {
     padding: 10px 0;
   }
-  
+
   .card-img-top {
     height: 200px !important;
   }
-  
+
   .card-title {
     font-size: 1rem;
   }

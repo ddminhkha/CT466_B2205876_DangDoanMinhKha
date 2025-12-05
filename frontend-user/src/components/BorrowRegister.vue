@@ -88,13 +88,29 @@ export default {
       try {
         // send single request with multiple bookIds (không cần dueDate nữa)
         const bookIds = this.books.map(b => b._id)
-        await api.post('/loans/request', { bookIds })
+        const response = await api.post('/loans/request', { bookIds })
+
+        console.log('Loan request response:', response.data);
 
         // Lưu bookIds đã mượn để cập nhật UI
+        // Use actual book IDs from the created loan response if available
         const borrowedBooks = JSON.parse(localStorage.getItem('borrowedBooks') || '{}')
-        bookIds.forEach(id => {
-          borrowedBooks[id] = 'borrowed'
-        })
+
+        // If response contains the created loan with actual book IDs, use those
+        if (response.data.loan && Array.isArray(response.data.loan.books)) {
+          response.data.loan.books.forEach(book => {
+            if (book._id) {
+              borrowedBooks[book._id] = 'borrowed'
+              console.log('Added to borrowedBooks:', book._id);
+            }
+          })
+        } else {
+          // Fallback to cart IDs
+          bookIds.forEach(id => {
+            borrowedBooks[id] = 'borrowed'
+          })
+        }
+
         localStorage.setItem('borrowedBooks', JSON.stringify(borrowedBooks))
 
         this.clear()
@@ -102,8 +118,8 @@ export default {
         // Persist success notification across navigation
         this.showSuccessAfterNavigation('Đăng ký mượn thành công! Ngày hẹn lấy sách: 5:00PM ngày mai. Vui lòng chờ admin duyệt.', 6000)
 
-        // Navigate to home page
-        await this.$router.push('/')
+        // Navigate to my loans page
+        await this.$router.push('/my-loans')
       } catch (err) {
         this.showError(err.response?.data?.message || err.message)
       } finally { this.submitting = false }

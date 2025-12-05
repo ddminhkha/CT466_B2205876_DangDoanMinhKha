@@ -119,16 +119,16 @@
         </div>
 
         <!-- Cancel Button for requested/approved loans -->
-        <div v-if="loan.status === 'requested' || loan.status === 'approved'" class="mt-2 d-grid gap-2 d-sm-block">
-          <button type="button" class="btn btn-outline-danger btn-sm w-100 w-sm-auto" @click="cancelLoan(loan)"
-            :disabled="cancelling === loan._id">
+        <div v-if="loan.status === 'requested' || loan.status === 'approved'" class="mt-2">
+          <button type="button" class="btn btn-danger btn-sm" @click="cancelLoan(loan)"
+            :disabled="cancelling === loan._id" style="padding: 0.25rem 0.75rem; font-size: 0.875rem;">
             <span v-if="cancelling === loan._id">
-              <i class="spinner-border spinner-border-sm me-2"></i>
-              <span class="d-none d-sm-inline">Đang hủy...</span>
+              <i class="spinner-border spinner-border-sm me-1"></i>
+              Đang hủy...
             </span>
             <span v-else>
               <i class="bi bi-x-circle me-1"></i>
-              <span class="d-none d-sm-inline">Hủy phiếu mượn</span><span class="d-sm-none">Hủy</span>
+              Hủy phiếu mượn
             </span>
           </button>
         </div>
@@ -222,7 +222,9 @@ export default {
     }
   },
   async created() {
-    await this.load(1)
+    await this.load(1);
+    // Sync borrowedBooks when component loads
+    await this.rebuildBorrowedBooks();
   },
   methods: {
     async load(page = 1) {
@@ -318,15 +320,53 @@ export default {
 
         // Xóa bookIds khỏi borrowedBooks
         const borrowedBooks = JSON.parse(localStorage.getItem('borrowedBooks') || '{}')
+        console.log('Current borrowedBooks before cancel:', borrowedBooks);
+        console.log('Loan ID being cancelled:', loan._id);
+        console.log('Loan books structure:', loan.books);
+
+        // Try multiple ways to extract book IDs
         if (Array.isArray(loan.books)) {
           loan.books.forEach(book => {
-            delete borrowedBooks[book._id]
+            // Try book._id (book instance ID)
+            if (book._id) {
+              console.log('Deleting book._id:', book._id);
+              delete borrowedBooks[book._id];
+            }
+
+            // Try book.book (if bookTitle is populated with _id)
+            if (book.book) {
+              console.log('Deleting book.book:', book.book);
+              delete borrowedBooks[book.book];
+            }
+
+            // Try book.bookTitle._id (if bookTitle is populated)
+            if (book.bookTitle && book.bookTitle._id) {
+              console.log('Deleting book.bookTitle._id:', book.bookTitle._id);
+              delete borrowedBooks[book.bookTitle._id];
+            }
           })
         }
+
+        console.log('Updated borrowedBooks after cancel:', borrowedBooks);
         localStorage.setItem('borrowedBooks', JSON.stringify(borrowedBooks))
+
+        // Trigger custom event để components trong cùng tab có thể listen
+        window.dispatchEvent(new CustomEvent('borrowedBooksChanged', {
+          detail: { borrowedBooks }
+        }));
+
+        // Trigger storage event để các component khác có thể listen
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'borrowedBooks',
+          newValue: JSON.stringify(borrowedBooks),
+          storageArea: localStorage
+        }));
 
         console.log('Cancel successful');
         this.showSuccess('Đã hủy phiếu mượn thành công');
+
+        // Rebuild borrowedBooks from all active loans
+        await this.rebuildBorrowedBooks();
 
         // Reload current page to reflect changes
         await this.load(this.currentPage);
@@ -336,6 +376,58 @@ export default {
         this.showError(`Lỗi: ${message}`);
       } finally {
         this.cancelling = null;
+      }
+    },
+    async rebuildBorrowedBooks() {
+      try {
+        console.log('Rebuilding borrowedBooks from active loans...');
+
+        // Fetch all active loans (not paginated)
+        const res = await api.get('/loans/me?limit=1000');
+        const allLoans = res.data.loans || res.data || [];
+
+        console.log('All loans fetched:', allLoans.length);
+
+        // Rebuild borrowedBooks từ các loans còn active
+        const borrowedBooks = {};
+        let activeLoanCount = 0;
+        let bookIdCount = 0;
+
+        allLoans.forEach(loan => {
+          console.log(`Loan ${loan._id}: status=${loan.status}, books count=${loan.books?.length || 0}`);
+
+          // Only track active loans (not cancelled, not rejected, not returned)
+          if (loan.status !== 'cancelled' && loan.status !== 'rejected' && loan.status !== 'returned') {
+            activeLoanCount++;
+            if (Array.isArray(loan.books)) {
+              loan.books.forEach(book => {
+                if (book._id) {
+                  borrowedBooks[book._id] = 'borrowed';
+                  bookIdCount++;
+                  console.log(`  ✓ Added book ID: ${book._id}`);
+                }
+              });
+            }
+          }
+        });
+
+        console.log(`📊 Rebuild summary: ${activeLoanCount} active loans, ${bookIdCount} book IDs`);
+        console.log('✅ Rebuilt borrowedBooks:', borrowedBooks);
+        localStorage.setItem('borrowedBooks', JSON.stringify(borrowedBooks));
+
+        // Trigger events
+        window.dispatchEvent(new CustomEvent('borrowedBooksChanged', {
+          detail: { borrowedBooks }
+        }));
+
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'borrowedBooks',
+          newValue: JSON.stringify(borrowedBooks),
+          storageArea: localStorage
+        }));
+
+      } catch (err) {
+        console.error('Error rebuilding borrowedBooks:', err);
       }
     },
     fmt(d) {

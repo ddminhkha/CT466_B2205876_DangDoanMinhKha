@@ -40,7 +40,7 @@ export default {
       try {
         const token = localStorage.getItem('token')
         if (!token) return
-        
+
         const response = await api.get('/users/me')
         if (response.data.status === 'banned') {
           // Clear interval before redirect to prevent further calls
@@ -48,7 +48,7 @@ export default {
             clearInterval(statusCheckInterval)
             statusCheckInterval = null
           }
-          
+
           localStorage.removeItem('token')
           await showAlert({
             title: 'Tài khoản bị khoá',
@@ -76,5 +76,10 @@ export default {
 <style>
 body {
   font-family: Arial, Helvetica, sans-serif
+}
+
+/* Smooth scrolling for admin */
+html {
+  scroll-behavior: smooth;
 }
 </style>

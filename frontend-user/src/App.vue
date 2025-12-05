@@ -21,4 +21,9 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
 }
+
+/* Smooth scrolling for all pages */
+html {
+  scroll-behavior: smooth;
+}
 </style>

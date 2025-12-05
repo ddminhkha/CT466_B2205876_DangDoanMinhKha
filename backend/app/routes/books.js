@@ -169,7 +169,7 @@ router.get('/', async (req, res) => {
             const skip = (page - 1) * limit;
             total = await Book.countDocuments(filter);
             list = await Book.find(filter)
-                .populate('bookTitle')
+                .populate('bookTitle', 'title author description')
                 .populate('publisher')
                 .sort(sortCriteria)
                 .skip(skip)
@@ -179,7 +179,7 @@ router.get('/', async (req, res) => {
             // Trả về tất cả cho admin
             total = await Book.countDocuments(filter);
             list = await Book.find(filter)
-                .populate('bookTitle')
+                .populate('bookTitle', 'title author description')
                 .populate('publisher')
                 .sort(sortCriteria)
                 .lean();
@@ -216,7 +216,7 @@ router.get('/', async (req, res) => {
                 const userActiveLoans = await Loan.find({
                     user: userId,
                     books: { $in: bookIds },
-                    status: { $nin: ['returned', 'rejected'] }
+                    status: { $nin: ['returned', 'rejected', 'cancelled'] }
                 }).lean();
 
                 console.log('📋 Active loans for user:', userActiveLoans.length); // Debug log
@@ -316,7 +316,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
     try {
         const book = await Book.findById(req.params.id)
-            .populate('bookTitle')
+            .populate('bookTitle', 'title author description')
             .populate('publisher')
             .lean();
         if (!book) return res.status(404).json({ message: 'Not found' });

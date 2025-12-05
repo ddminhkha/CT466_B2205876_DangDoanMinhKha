@@ -152,14 +152,47 @@
                 </div>
             </div>
         </div>
+
+        <!-- Notification Modal -->
+        <div v-if="notification.show" class="modal d-block" style="background: rgba(0, 0, 0, 0.5)">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"
+                        :class="notification.type === 'success' ? 'bg-success text-white' : 'bg-danger text-white'">
+                        <h5 class="modal-title">
+                            <i
+                                :class="notification.type === 'success' ? 'bi bi-check-circle' : 'bi bi-exclamation-triangle'"></i>
+                            {{ notification.type === 'success' ? 'Thành công' : 'Lỗi' }}
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white"
+                            @click="notification.show = false"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p class="mb-0">{{ notification.message }}</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn"
+                            :class="notification.type === 'success' ? 'btn-success' : 'btn-danger'"
+                            @click="notification.show = false">
+                            Đóng
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
 <script>
 import api from '../services/api'
+import { useConfirmDialog } from '../composables/useConfirmDialog'
 
 export default {
     name: 'BookTitles',
+    setup() {
+        const { showConfirm } = useConfirmDialog()
+        return { showConfirm }
+    },
     data() {
         return {
             bookTitles: [],
@@ -169,6 +202,11 @@ export default {
             showBooksModal: false,
             selectedTitle: null,
             selectedTitleBooks: [],
+            notification: {
+                show: false,
+                message: '',
+                type: 'success' // 'success' or 'error'
+            },
             form: {
                 title: '',
                 author: '',
@@ -192,13 +230,18 @@ export default {
         }
     },
     methods: {
+        showNotification(message, type = 'success') {
+            this.notification.message = message
+            this.notification.type = type
+            this.notification.show = true
+        },
         async fetchBookTitles() {
             try {
                 const response = await api.get('/booktitles')
                 this.bookTitles = response.data.bookTitles || []
             } catch (error) {
                 console.error('Error fetching book titles:', error)
-                alert('Lỗi khi tải danh sách đầu sách')
+                this.showNotification('Lỗi khi tải danh sách đầu sách', 'error')
             }
         },
         async saveBookTitle() {
@@ -209,12 +252,12 @@ export default {
                     await api.post('/booktitles', this.form)
                 }
 
-                alert(this.editingId ? 'Cập nhật thành công' : 'Thêm mới thành công')
+                this.showNotification(this.editingId ? 'Cập nhật thành công' : 'Thêm mới thành công', 'success')
                 this.resetForm()
                 await this.fetchBookTitles()
             } catch (error) {
                 console.error('Error saving book title:', error)
-                alert(error.response?.data?.message || 'Lỗi khi lưu đầu sách')
+                this.showNotification(error.response?.data?.message || 'Lỗi khi lưu đầu sách', 'error')
             }
         },
         editTitle(title) {
@@ -230,15 +273,22 @@ export default {
             this.showAddForm = true
         },
         async deleteTitle(id) {
-            if (!confirm('Bạn chắc chắn muốn xóa đầu sách này?')) return
+            const confirmed = await this.showConfirm({
+                title: 'Xác nhận xóa',
+                message: 'Bạn chắc chắn muốn xóa đầu sách này?',
+                type: 'danger',
+                confirmText: 'Xóa',
+                cancelText: 'Hủy'
+            })
+            if (!confirmed) return
 
             try {
                 await api.delete(`/booktitles/${id}`)
-                alert('Xóa thành công')
+                this.showNotification('Xóa thành công', 'success')
                 await this.fetchBookTitles()
             } catch (error) {
                 console.error('Error deleting book title:', error)
-                alert(error.response?.data?.message || 'Lỗi khi xóa đầu sách')
+                this.showNotification(error.response?.data?.message || 'Lỗi khi xóa đầu sách', 'error')
             }
         },
         async viewBooks(title) {
@@ -249,7 +299,7 @@ export default {
                 this.showBooksModal = true
             } catch (error) {
                 console.error('Error fetching books:', error)
-                alert('Lỗi khi tải danh sách tập')
+                this.showNotification('Lỗi khi tải danh sách tập', 'error')
             }
         },
         cancelEdit() {
